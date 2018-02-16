@@ -1,4 +1,0 @@
-[submodule "bsatk"]
-	path = bsatk
-	url = https://github.com/TanninOne/modorganizer-bsatk
-  branch = noboost
