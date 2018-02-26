@@ -5,7 +5,7 @@
   "scripts": {
     "autogypi": "autogypi",
     "node-gyp": "node-gyp",
-    "submodules": "git clone --branch noboost --depth=1 https://github.com/TanninOne/modorganizer-bsatk bsatk",
+    "submodules": "git clone --branch noboost --depth=1 https://github.com/TanninOne/modorganizer-bsatk bsatk || exit /b 0",
     "install": "npm run submodules && autogypi && node-gyp configure --msvs_version=2015 build"
   },
   "author": "Black Tree Gaming Ltd.",

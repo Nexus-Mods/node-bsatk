@@ -97,18 +97,29 @@ private:
 
 class BSArchive {
 public:
-  BSArchive(const char *fileName, bool testHashes)
+  BSArchive(const char *fileName, bool testHashes, bool create)
     : m_Wrapped(new BSA::Archive())
+    , m_Name(fileName)
   {
-    read(fileName, testHashes);
+    if (!create) {
+      read(fileName, testHashes);
+    }
   }
 
   BSArchive(const BSArchive &ref)
     : m_Wrapped(ref.m_Wrapped)
+    , m_Name(ref.m_Name)
   {
   }
 
   ~BSArchive() {
+  }
+
+  void write() {
+    BSA::EErrorCode err = m_Wrapped->write(m_Name.c_str());
+    if (err != BSA::ERROR_NONE) {
+      throw std::runtime_error(convertErrorCode(err));
+    }
   }
 
   BSAFolder getRoot() {
@@ -144,22 +155,28 @@ public:
         new Nan::Callback(callback.getJsFunction())
     ));
   }
+
+  BSAFile createFile(const char *name, const char *sourcePath, bool compressed) {
+    return BSAFile(m_Wrapped->createFile(name, sourcePath, compressed));
+  }
 private:
+  std::string m_Name;
   std::shared_ptr<BSA::Archive> m_Wrapped;
 };
 
 class LoadWorker : public Nan::AsyncWorker {
 public:
-  LoadWorker(const char *fileName, bool testHashes, Nan::Callback *appCallback)
+  LoadWorker(const char *fileName, bool testHashes, bool create, Nan::Callback *appCallback)
     : Nan::AsyncWorker(appCallback)
     , m_OutputDirectory(fileName)
     , m_TestHashes(testHashes)
+    , m_Create(create)
   {
   }
 
   void Execute() {
     try {
-      m_Result = new BSArchive(m_OutputDirectory.c_str(), m_TestHashes);
+      m_Result = new BSArchive(m_OutputDirectory.c_str(), m_TestHashes, m_Create);
     }
     catch (const std::exception &e) {
       SetErrorMessage(e.what());
@@ -181,13 +198,21 @@ private:
   BSArchive *m_Result;
   std::string m_OutputDirectory;
   bool m_TestHashes;
+  bool m_Create;
 };
-
 
 void loadBSA(const char *fileName, bool testHashes, nbind::cbFunction &callback) {
   Nan::AsyncQueueWorker(
     new LoadWorker(
-      fileName, testHashes,
+      fileName, testHashes, false,
+      new Nan::Callback(callback.getJsFunction())
+  ));
+}
+
+void createBSA(const char *fileName, nbind::cbFunction &callback) {
+  Nan::AsyncQueueWorker(
+    new LoadWorker(
+      fileName, false, true,
       new Nan::Callback(callback.getJsFunction())
   ));
 }
@@ -212,11 +237,14 @@ NBIND_CLASS(BSAFolder) {
 }
 
 NBIND_CLASS(BSArchive) {
-  NBIND_CONSTRUCT<const char*, bool>();
+  NBIND_CONSTRUCT<const char*, bool, bool>();
   NBIND_GETTER(getType);
   NBIND_GETTER(getRoot);
+  NBIND_METHOD(write);
   NBIND_METHOD(extractFile);
   NBIND_METHOD(extractAll);
+  NBIND_METHOD(createFile);
 }
 
 NBIND_FUNCTION(loadBSA);
+NBIND_FUNCTION(createBSA);

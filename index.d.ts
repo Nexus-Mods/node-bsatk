@@ -1,9 +1,12 @@
 declare module 'bsatk' {
   export class BSArchive {
+    constructor(fileName: string, testHashes: boolean, create: boolean);
     type: number;
     root: BSAFolder;
     extractFile: (file: BSAFile, outputDirectory: string, callback: (err: Error) => void) => void;
     extractAll: (outputDirectory: string, callback: (err: Error) => void) => void;
+    write: () => void;
+    createFile: (fileName: string, sourcePath: string, compressed: boolean) => BSAFile;
   }
 
   export class BSAFile {
@@ -24,7 +27,6 @@ declare module 'bsatk' {
     addFolder(name: string): BSAFolder;
   }
 
-  function loadBSA(fileName: string, testHashes: boolean, callback: (err: Error, archive: BSArchive) => void);
-
-  export default loadBSA;
+  export function loadBSA(fileName: string, testHashes: boolean, callback: (err: Error, archive: BSArchive) => void);
+  export function createBSA(fileName: string, callback: (err: Error, archive: BSArchive) => void);
 }
