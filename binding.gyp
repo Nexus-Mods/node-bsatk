@@ -27,7 +27,8 @@
                             "_HAS_EXCEPTIONS=0"
                         ],
                         "libraries": [
-                            "-l../zlib/win32/zlibstatic.lib"
+                            "-l../zlib/win32/zlibstatic.lib",
+                            "-DelayLoad:node.exe",
                         ],
                         "msvs_settings": {
                             "VCCLCompilerTool": {
