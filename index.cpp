@@ -4,7 +4,6 @@
 #include <vector>
 #include <nan.h>
 
-
 const char *convertErrorCode(BSA::EErrorCode code) {
   switch (code) {
     case BSA::ERROR_ACCESSFAILED: return "access failed";
@@ -119,7 +118,13 @@ public:
   void write() {
     BSA::EErrorCode err = m_Wrapped->write(m_Name.c_str());
     if (err != BSA::ERROR_NONE) {
-      throw std::runtime_error(convertErrorCode(err));
+      if ((err == BSA::ERROR_ACCESSFAILED) || (err == BSA::ERROR_FILENOTFOUND)) {
+        // these are system errors, we get more out of it by checking errno
+        Nan::ThrowError(node::ErrnoException(errno, "read"));
+      }
+      else {
+        Nan::ThrowError(convertErrorCode(err));
+      }
     }
   }
 
@@ -139,7 +144,14 @@ public:
   void read(const char *fileName, bool testHashes) {
     BSA::EErrorCode err = m_Wrapped->read(toWC(fileName, CodePage::UTF8, strlen(fileName)).c_str(), testHashes);
     if (err != BSA::ERROR_NONE) {
-      throw std::runtime_error(convertErrorCode(err));
+      std::cout << "last err: " << errno << std::endl;
+      if ((err == BSA::ERROR_ACCESSFAILED) || (err == BSA::ERROR_FILENOTFOUND)) {
+        // these are system errors, we get more out of it by checking errno
+        Nan::ThrowError(node::ErrnoException(errno, "read"));
+      }
+      else {
+        Nan::ThrowError(convertErrorCode(err));
+      }
     }
   }
 
