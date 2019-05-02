@@ -95,6 +95,15 @@ private:
   std::shared_ptr<BSA::Folder> m_Folder;
 };
 
+v8::Isolate *GetIsolate() {
+  v8::Isolate *isolate = v8::Isolate::GetCurrent();
+  if (isolate == nullptr) {
+    isolate = v8::Isolate::New(v8::Isolate::CreateParams());
+    isolate->Enter();
+  }
+  return isolate;
+}
+
 class BSArchive {
 public:
   BSArchive(const char *fileName, bool testHashes, bool create)
@@ -119,8 +128,9 @@ public:
     BSA::EErrorCode err = m_Wrapped->write(m_Name.c_str());
     if (err != BSA::ERROR_NONE) {
       if ((err == BSA::ERROR_ACCESSFAILED) || (err == BSA::ERROR_FILENOTFOUND)) {
+        v8::Isolate *isolate = GetIsolate();
         // these are system errors, we get more out of it by checking errno
-        Nan::ThrowError(node::ErrnoException(errno, "read"));
+        isolate->ThrowException(node::ErrnoException(isolate, errno, "read"));
       }
       else {
         Nan::ThrowError(convertErrorCode(err));
@@ -145,8 +155,9 @@ public:
     BSA::EErrorCode err = m_Wrapped->read(toWC(fileName, CodePage::UTF8, strlen(fileName)).c_str(), testHashes);
     if (err != BSA::ERROR_NONE) {
       if ((err == BSA::ERROR_ACCESSFAILED) || (err == BSA::ERROR_FILENOTFOUND)) {
+        v8::Isolate *isolate = GetIsolate();
         // these are system errors, we get more out of it by checking errno
-        Nan::ThrowError(node::ErrnoException(errno, "read"));
+        isolate->ThrowException(node::ErrnoException(isolate, errno, "read"));
       }
       else {
         Nan::ThrowError(convertErrorCode(err));
