@@ -224,7 +224,9 @@ public:
     Nan::HandleScope scope;
 
     v8::Local<v8::Value> argv[] = {
-      Nan::ErrnoException(m_Errno, m_SysCall, ErrorMessage())
+      (m_ErrorCode == BSA::EErrorCode::ERROR_ACCESSFAILED) || (m_ErrorCode == BSA::EErrorCode::ERROR_FILENOTFOUND)
+        ? Nan::ErrnoException(m_Errno, m_SysCall)
+        : Nan::Error(ErrorMessage())
     };
     callback->Call(1, argv, async_resource);
   }
