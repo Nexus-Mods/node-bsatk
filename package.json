@@ -1,6 +1,6 @@
 {
   "name": "bsatk",
-  "version": "1.1.9",
+  "version": "1.1.10",
   "description": "read information from gamebryo bsa files (very basic)",
   "scripts": {
     "autogypi": "autogypi",

@@ -137,7 +137,18 @@ public:
   void write() {
     BSA::EErrorCode err = m_Wrapped->write(m_Name.c_str());
     if (err != BSA::ERROR_NONE) {
-      throw BSAException(err, "write");
+      v8::Isolate *isolate = v8::Isolate::GetCurrent();
+      if (isolate == nullptr) {
+        // no isolate, assume this is running in a background thread so throw
+        // a c++ exception so it can get converted later
+        throw BSAException(err, "write");
+      }
+      else {
+        // called directly
+        isolate->ThrowException((err == BSA::EErrorCode::ERROR_ACCESSFAILED) || (err == BSA::EErrorCode::ERROR_FILENOTFOUND)
+          ? Nan::ErrnoException(errno, "write")
+          : Nan::Error(convertErrorCode(err)));
+      }
     }
   }
 
@@ -157,7 +168,18 @@ public:
   void read(const char *fileName, bool testHashes) {
     BSA::EErrorCode err = m_Wrapped->read(toWC(fileName, CodePage::UTF8, strlen(fileName)).c_str(), testHashes);
     if (err != BSA::ERROR_NONE) {
-      throw BSAException(err, "read");
+      v8::Isolate *isolate = v8::Isolate::GetCurrent();
+      if (isolate == nullptr) {
+        // no isolate, assume this is running in a background thread so throw
+        // a c++ exception so it can get converted later
+        throw BSAException(err, "write");
+      }
+      else {
+        // called directly
+        isolate->ThrowException((err == BSA::EErrorCode::ERROR_ACCESSFAILED) || (err == BSA::EErrorCode::ERROR_FILENOTFOUND)
+          ? Nan::ErrnoException(errno, "write")
+          : Nan::Error(convertErrorCode(err)));
+      }
     }
   }
 
