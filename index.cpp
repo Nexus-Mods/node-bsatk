@@ -18,6 +18,25 @@ const char *convertErrorCode(BSA::EErrorCode code) {
   }
 }
 
+class BSAException : public std::exception {
+public:
+  BSAException(BSA::EErrorCode code, const char *sysCall)
+    : m_Code(code), m_Errno(errno), m_SysCall(sysCall) {}
+
+  virtual char const* what() const override {
+    return convertErrorCode(m_Code);
+  }
+
+  BSA::EErrorCode code() const { return m_Code; }
+  int sysError() const { return m_Errno; }
+  const char *sysCall() const { return m_SysCall; }
+
+private:
+  BSA::EErrorCode m_Code;
+  int m_Errno;
+  const char *m_SysCall;
+};
+
 class ExtractWorker : public Nan::AsyncWorker {
 public:
   ExtractWorker(std::shared_ptr<BSA::Archive> archive,
@@ -95,15 +114,6 @@ private:
   std::shared_ptr<BSA::Folder> m_Folder;
 };
 
-v8::Isolate *GetIsolate() {
-  v8::Isolate *isolate = v8::Isolate::GetCurrent();
-  if (isolate == nullptr) {
-    isolate = v8::Isolate::New(v8::Isolate::CreateParams());
-    isolate->Enter();
-  }
-  return isolate;
-}
-
 class BSArchive {
 public:
   BSArchive(const char *fileName, bool testHashes, bool create)
@@ -127,14 +137,7 @@ public:
   void write() {
     BSA::EErrorCode err = m_Wrapped->write(m_Name.c_str());
     if (err != BSA::ERROR_NONE) {
-      if ((err == BSA::ERROR_ACCESSFAILED) || (err == BSA::ERROR_FILENOTFOUND)) {
-        v8::Isolate *isolate = GetIsolate();
-        // these are system errors, we get more out of it by checking errno
-        isolate->ThrowException(node::ErrnoException(isolate, errno, "read"));
-      }
-      else {
-        Nan::ThrowError(convertErrorCode(err));
-      }
+      throw BSAException(err, "write");
     }
   }
 
@@ -154,14 +157,7 @@ public:
   void read(const char *fileName, bool testHashes) {
     BSA::EErrorCode err = m_Wrapped->read(toWC(fileName, CodePage::UTF8, strlen(fileName)).c_str(), testHashes);
     if (err != BSA::ERROR_NONE) {
-      if ((err == BSA::ERROR_ACCESSFAILED) || (err == BSA::ERROR_FILENOTFOUND)) {
-        v8::Isolate *isolate = GetIsolate();
-        // these are system errors, we get more out of it by checking errno
-        isolate->ThrowException(node::ErrnoException(isolate, errno, "read"));
-      }
-      else {
-        Nan::ThrowError(convertErrorCode(err));
-      }
+      throw BSAException(err, "read");
     }
   }
 
@@ -201,6 +197,12 @@ public:
     try {
       m_Result = new BSArchive(m_OutputDirectory.c_str(), m_TestHashes, m_Create);
     }
+    catch (const BSAException &e) {
+      m_ErrorCode = e.code();
+      m_Errno = e.sysError();
+      m_SysCall = e.sysCall();
+      SetErrorMessage(e.what());
+    }
     catch (const std::exception &e) {
       SetErrorMessage(e.what());
     }
@@ -217,9 +219,22 @@ public:
     callback->Call(2, argv);
     delete m_Result;
   }
+
+  virtual void HandleErrorCallback() {
+    Nan::HandleScope scope;
+
+    v8::Local<v8::Value> argv[] = {
+      Nan::ErrnoException(m_Errno, m_SysCall, ErrorMessage())
+    };
+    callback->Call(1, argv, async_resource);
+  }
+
 private:
   BSArchive *m_Result;
   std::string m_OutputDirectory;
+  BSA::EErrorCode m_ErrorCode;
+  int m_Errno;
+  const char *m_SysCall;
   bool m_TestHashes;
   bool m_Create;
 };
