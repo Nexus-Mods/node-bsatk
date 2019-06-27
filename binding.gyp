@@ -19,6 +19,11 @@
             ],
             "cflags!": ["-fno-exceptions"],
             "cflags_cc!": ["-fno-exceptions"],
+            'msbuild_settings': {
+              'ClCompile': {
+                'AdditionalOptions': ['-std:c++17', '/Ob2', '/Oi', '/Ot', '/Oy', '/GL', '/GF', '/Gy', '/MT']
+              }
+            },
             "conditions": [
                 [
                     'OS=="win"',
@@ -33,6 +38,12 @@
                         "msvs_settings": {
                             "VCCLCompilerTool": {
                                 "ExceptionHandling": 1
+                            },
+                            "VCLibrarianTool": {
+                              'AdditionalOptions': [ '/LTCG' ]
+                            },
+                            'VCLinkerTool': {
+                              'LinkTimeCodeGeneration': 1
                             }
                         }
                     }
