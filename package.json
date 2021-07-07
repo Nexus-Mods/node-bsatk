@@ -1,6 +1,6 @@
 {
   "name": "bsatk",
-  "version": "1.1.14",
+  "version": "2.0.0",
   "description": "read information from gamebryo bsa files (very basic)",
   "scripts": {
     "autogypi": "autogypi",
@@ -12,7 +12,8 @@
   "license": "GPL-3.0",
   "dependencies": {
     "autogypi": "^0.2.2",
-    "nbind": "TanninOne/nbind",
+    "bindings": "^1.5.0",
+    "node-addon-api": "^4.0.0",
     "node-gyp": "^6.1.0",
     "tmp": "0.0.29"
   }

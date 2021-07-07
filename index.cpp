@@ -1,8 +1,7 @@
-#include "nbind/noconflict.h"
 #include "bsatk/src/bsaarchive.h"
 #include "string_cast.h"
 #include <vector>
-#include <nan.h>
+#include <napi.h>
 
 const char *convertErrorCode(BSA::EErrorCode code) {
   switch (code) {
@@ -37,13 +36,26 @@ private:
   const char *m_SysCall;
 };
 
-class ExtractWorker : public Nan::AsyncWorker {
+class BSAddon : public Napi::Addon<BSAddon> {
+public:
+  BSAddon(Napi::Env env, Napi::Object exports);
+
+  Napi::FunctionReference constructArchive;
+  Napi::FunctionReference constructFolder;
+  Napi::FunctionReference constructFile;
+
+private:
+  Napi::Value loadBSA(const Napi::CallbackInfo& info);
+  Napi::Value createBSA(const Napi::CallbackInfo& info);
+};
+
+class ExtractWorker : public Napi::AsyncWorker {
 public:
   ExtractWorker(std::shared_ptr<BSA::Archive> archive,
              BSA::File::Ptr file,
              const char *outputrDirectory,
-             Nan::Callback *appCallback)
-    : Nan::AsyncWorker(appCallback)
+             const Napi::Function &appCallback)
+    : Napi::AsyncWorker(appCallback)
     , m_Archive(archive)
     , m_File(file)
     , m_OutputDirectory(outputrDirectory)
@@ -59,254 +71,301 @@ public:
         [](int, std::string) { return true; });
     }
     if (code != BSA::ERROR_NONE) {
-      SetErrorMessage(convertErrorCode(code));
+      SetError(convertErrorCode(code));
     }
   }
 
-  void HandleOKCallback() {
-    Nan::HandleScope scope;
-
-    v8::Local<v8::Value> argv[] = {
-      Nan::Null()
-    };
-
-    callback->Call(1, argv);
+  virtual void OnOK() override {
+    Callback().Call(Receiver().Value(), std::initializer_list<napi_value>{ Env().Null() });
   }
+
 private:
   std::shared_ptr<BSA::Archive> m_Archive;
   std::shared_ptr<BSA::File> m_File;
   std::string m_OutputDirectory;
 };
 
-class BSAFile {
+class BSAFile : public Napi::ObjectWrap<BSAFile> {
 public:
-  BSAFile(std::shared_ptr<BSA::File> file)
-    : m_File(file)
+  static Napi::FunctionReference Init(Napi::Env env, Napi::Object exports) {
+    Napi::Function func = DefineClass(env, "BSAFile", {
+      InstanceMethod("getName", &BSAFile::getName),
+      InstanceMethod("getFilePath", &BSAFile::getFilePath),
+      InstanceMethod("getFileSize", &BSAFile::getFileSize),
+      });
+
+    exports.Set("BSAFile", func);
+
+    return Napi::Persistent(func);
+  }
+
+  BSAFile(const Napi::CallbackInfo& info)
+    : Napi::ObjectWrap<BSAFile>(info)
   {}
+
+  BSAFile(const Napi::CallbackInfo &info, std::shared_ptr<BSA::File> file)
+    : Napi::ObjectWrap<BSAFile>(info)
+    , m_File(file)
+  {}
+
+  static Napi::Object CreateNewItem(Napi::Env env) {
+    BSAddon* addon = env.GetInstanceData<BSAddon>();
+    return addon->constructFile.New({ });
+  }
+
+  void setWrappee(const std::shared_ptr<BSA::File>& file)
+  {
+    m_File = file;
+  }
 
   BSA::File::Ptr getWrappee() const { return m_File; }
 
-  std::string getName() const { return m_File->getName(); }
-  std::string getFilePath() const { return m_File->getFilePath(); }
-  unsigned long getFileSize() const { return m_File->getFileSize(); }
+  Napi::Value getName(const Napi::CallbackInfo &info) { return Napi::String::New(info.Env(), m_File->getName()); }
+  Napi::Value getFilePath(const Napi::CallbackInfo &info) { return Napi::String::New(info.Env(), m_File->getFilePath()); }
+  Napi::Value getFileSize(const Napi::CallbackInfo &info) { return Napi::Number::New(info.Env(), m_File->getFileSize()); }
 
 private:
   BSA::File::Ptr m_File;
 };
 
-class BSAFolder {
+class BSAFolder: public Napi::ObjectWrap<BSAFolder> {
 public:
-  BSAFolder(std::shared_ptr<BSA::Folder> folder)
-    : m_Folder(folder)
-  {}
+  static Napi::FunctionReference Init(Napi::Env env, Napi::Object exports) {
+    Napi::Function func = DefineClass(env, "BSAFolder", {
+      InstanceMethod("getName", &BSAFolder::getName),
+      InstanceMethod("getFullPath", &BSAFolder::getFullPath),
+      InstanceMethod("getNumSubFolders", &BSAFolder::getNumSubFolders),
+      InstanceMethod("getSubFolder", &BSAFolder::getSubFolder),
+      InstanceMethod("getNumFiles", &BSAFolder::getNumFiles),
+      InstanceMethod("countFiles", &BSAFolder::countFiles),
+      InstanceMethod("getFile", &BSAFolder::getFile),
+      InstanceMethod("addFile", &BSAFolder::addFile),
+      InstanceMethod("addFolder", &BSAFolder::addFolder),
+      });
 
-  std::string getName() const { return m_Folder->getName(); }
-  std::string getFullPath() const { return m_Folder->getFullPath(); }
-  unsigned int getNumSubFolders() const { return m_Folder->getNumSubFolders(); }
-  BSAFolder getSubFolder(unsigned int index) const { return BSAFolder(m_Folder->getSubFolder(index)); }
-  unsigned int getNumFiles() const { return m_Folder->getNumFiles(); }
-  unsigned int countFiles() const { return m_Folder->countFiles(); }
-  const BSAFile getFile(unsigned int index) const { return BSAFile(m_Folder->getFile(index)); }
-  void addFile(const BSAFile &file) { m_Folder->addFile(file.getWrappee()); }
-  BSAFolder addFolder(const std::string &folderName) { return BSAFolder(m_Folder->addFolder(folderName)); }
+    exports.Set("BSAFolder", func);
+
+    return Napi::Persistent(func);
+  }
+
+  BSAFolder(const Napi::CallbackInfo& info)
+    : Napi::ObjectWrap<BSAFolder>(info)
+  {
+  }
+
+  BSAFolder(const Napi::CallbackInfo &info, std::shared_ptr<BSA::Folder> folder)
+    : Napi::ObjectWrap<BSAFolder>(info)
+    , m_Folder(folder)
+  {
+  }
+
+  static Napi::Object CreateNewItem(Napi::Env env) {
+    BSAddon* addon = env.GetInstanceData<BSAddon>();
+    return addon->constructFolder.New({ });
+  }
+
+  void setWrappee(const std::shared_ptr<BSA::Folder>& folder)
+  {
+    m_Folder = folder;
+  }
+
+  Napi::Value getName(const Napi::CallbackInfo &info) { return Napi::String::New(info.Env(), m_Folder->getName()); }
+  Napi::Value getFullPath(const Napi::CallbackInfo &info) { return Napi::String::New(info.Env(), m_Folder->getFullPath()); }
+  Napi::Value getNumSubFolders(const Napi::CallbackInfo &info) { return Napi::Number::New(info.Env(), m_Folder->getNumSubFolders()); }
+  Napi::Value getSubFolder(const Napi::CallbackInfo &info) {
+    int32_t idx = info[0].ToNumber().Int32Value();
+    Napi::Object result = CreateNewItem(info.Env());
+    BSAFolder::Unwrap(result)->setWrappee(m_Folder->getSubFolder(idx));
+    return result;
+  }
+  Napi::Value getNumFiles(const Napi::CallbackInfo &info) { return Napi::Number::New(info.Env(), m_Folder->getNumFiles()); }
+  Napi::Value countFiles(const Napi::CallbackInfo &info) { return Napi::Number::New(info.Env(), m_Folder->countFiles()); }
+  Napi::Value getFile(const Napi::CallbackInfo &info) {
+    int32_t idx = info[0].ToNumber().Int32Value();
+    Napi::Object result = BSAFile::CreateNewItem(info.Env());
+    BSAFile::Unwrap(result)->setWrappee(m_Folder->getFile(idx));
+    return result;
+  }
+  Napi::Value addFile(const Napi::CallbackInfo &info) {
+    BSAFile *file = BSAFile::Unwrap(info[0].ToObject());
+    m_Folder->addFile(file->getWrappee());
+    return info.Env().Undefined();
+  }
+  Napi::Value addFolder(const Napi::CallbackInfo &info) {
+    return BSAFolder(info, m_Folder->addFolder(Napi::String::New(info.Env(), info[0].ToString().Utf8Value()))).Value();
+  }
 
 private:
   std::shared_ptr<BSA::Folder> m_Folder;
 };
 
-class BSArchive {
+class BSArchive: public Napi::ObjectWrap<BSArchive> {
 public:
-  BSArchive(const char *fileName, bool testHashes, bool create)
-    : m_Wrapped(new BSA::Archive())
-    , m_Name(fileName)
-  {
-    if (!create) {
-      read(fileName, testHashes);
-    }
+  static Napi::FunctionReference Init(Napi::Env env, Napi::Object exports) {
+    Napi::Function func = DefineClass(env, "BSArchive", {
+      InstanceMethod("getType", &BSArchive::getType),
+      InstanceMethod("getRoot", &BSArchive::getRoot),
+      InstanceMethod("write", &BSArchive::write),
+      InstanceMethod("extractFile", &BSArchive::extractFile),
+      InstanceMethod("extractAll", &BSArchive::extractAll),
+      });
+
+    Napi::FunctionReference* constructor = new Napi::FunctionReference();
+    exports.Set("BSArchive", func);
+    return Napi::Persistent(func);
   }
 
-  BSArchive(const BSArchive &ref)
-    : m_Wrapped(ref.m_Wrapped)
-    , m_Name(ref.m_Name)
+  BSArchive(const BSArchive&) = delete;
+
+  BSArchive(const Napi::CallbackInfo &info)
+    : Napi::ObjectWrap<BSArchive>(info)
+    , m_Wrapped(new BSA::Archive())
+    , m_Name(info[0].ToString())
   {
+  }
+
+  static Napi::Object CreateNewItem(Napi::Env env) {
+    BSAddon* addon = env.GetInstanceData<BSAddon>();
+    return addon->constructArchive.New({ });
   }
 
   ~BSArchive() {
   }
 
-  void write() {
+  void readAsync(const Napi::CallbackInfo& info, const std::string& filePath, bool testHashes, const Napi::Function& cb) {
+    const Napi::Env env = info.Env();
+    std::thread* loadThread;
+
+    m_ThreadCB = Napi::ThreadSafeFunction::New(info.Env(), cb,
+      "AsyncLoadCB", 0, 1, [loadThread](Napi::Env) {
+      loadThread->join();
+      delete loadThread;
+    });
+
+
+    loadThread = new std::thread{ [this, env, filePath, testHashes]() {
+      auto callback = [](Napi::Env env, Napi::Function jsCallback, BSArchive* result) {
+        jsCallback.Call({ env.Null(), result->Value() });
+      };
+
+      auto callbackError = [](Napi::Env env, Napi::Function jsCallback, std::string* err = nullptr) {
+        jsCallback.Call({Napi::String::New(env, err->c_str())});
+      };
+
+      try {
+        read(filePath.c_str(), testHashes);
+        m_ThreadCB.Acquire();
+        m_ThreadCB.BlockingCall(this, callback);
+      }
+      catch (const std::exception& e) {
+        std::string* err = new std::string{ e.what() };
+        m_ThreadCB.Acquire();
+        m_ThreadCB.BlockingCall(err, callbackError);
+      }
+
+      m_ThreadCB.Release();
+    } };
+  }
+
+  Napi::Value createFile(const Napi::CallbackInfo &info, const char *name, const char *sourcePath, bool compressed) {
+    return BSAFile(info, m_Wrapped->createFile(name, sourcePath, compressed)).Value();
+  }
+
+  Napi::Value write(const Napi::CallbackInfo &info) {
     BSA::EErrorCode err = m_Wrapped->write(m_Name.c_str());
     if (err != BSA::ERROR_NONE) {
-      v8::Isolate *isolate = v8::Isolate::GetCurrent();
-      if (isolate == nullptr) {
-        // no isolate, assume this is running in a background thread so throw
-        // a c++ exception so it can get converted later
-        throw BSAException(err, "write");
-      }
-      else {
-        // called directly
-        isolate->ThrowException((err == BSA::EErrorCode::ERROR_ACCESSFAILED) || (err == BSA::EErrorCode::ERROR_FILENOTFOUND)
-          ? Nan::ErrnoException(errno, "write")
-          : Nan::Error(convertErrorCode(err)));
-      }
+      throw std::runtime_error(convertErrorCode(err));
     }
+    return info.Env().Undefined();
   }
 
-  BSAFolder getRoot() {
-    return BSAFolder(m_Wrapped->getRoot());
+  Napi::Value getRoot(const Napi::CallbackInfo &info) {
+    BSA::Folder::Ptr root = m_Wrapped->getRoot();
+    Napi::Object result = BSAFolder::CreateNewItem(info.Env());
+    BSAFolder::Unwrap(result)->setWrappee(root);
+
+    return result;
   }
 
-  const char *getType() const {
+  Napi::Value getType(const Napi::CallbackInfo& info) {
     switch (m_Wrapped->getType()) {
-      case BSA::TYPE_OBLIVION: return "oblivion";
-      case BSA::TYPE_SKYRIM:   return "skyrim";
-      // fallout 3 and fallout nv use the same type as skyrim
-      default: return nullptr;
+      case BSA::TYPE_OBLIVION: return Napi::String::From(info.Env(), "oblivion");
+      case BSA::TYPE_SKYRIM:   return Napi::String::From(info.Env(), "skyrim");
+        // fallout 3 and fallout nv use the same type as skyrim
+      default: return info.Env().Null();
     }
   }
 
+  Napi::Value extractFile(const Napi::CallbackInfo &info) {
+    auto worker = new ExtractWorker(m_Wrapped,
+      BSAFile::Unwrap(info[0].ToObject())->getWrappee(),
+      info[1].ToString().Utf8Value().c_str(),
+      info[2].As<Napi::Function>());
+
+    worker->Queue();
+    return info.Env().Undefined();
+  }
+
+  Napi::Value extractAll(const Napi::CallbackInfo &info) {
+    std::string outputDirectory = info[0].ToString();
+    Napi::Function callback = info[1].As<Napi::Function>();
+
+    auto worker = new ExtractWorker(m_Wrapped,
+      std::shared_ptr<BSA::File>(),
+      outputDirectory.c_str(),
+      callback);
+
+    worker->Queue();
+    return info.Env().Undefined();
+  }
+
+private:
   void read(const char *fileName, bool testHashes) {
     BSA::EErrorCode err = m_Wrapped->read(toWC(fileName, CodePage::UTF8, strlen(fileName)).c_str(), testHashes);
     if (err != BSA::ERROR_NONE) {
-      v8::Isolate *isolate = v8::Isolate::GetCurrent();
-      if (isolate == nullptr) {
-        // no isolate, assume this is running in a background thread so throw
-        // a c++ exception so it can get converted later
-        throw BSAException(err, "write");
-      }
-      else {
-        // called directly
-        isolate->ThrowException((err == BSA::EErrorCode::ERROR_ACCESSFAILED) || (err == BSA::EErrorCode::ERROR_FILENOTFOUND)
-          ? Nan::ErrnoException(errno, "write")
-          : Nan::Error(convertErrorCode(err)));
-      }
+      throw std::runtime_error(convertErrorCode(err));
     }
-  }
-
-  void extractFile(BSAFile file, const char *outputDirectory, nbind::cbFunction callback) {
-    Nan::AsyncQueueWorker(
-      new ExtractWorker(m_Wrapped, file.getWrappee(), outputDirectory,
-        new Nan::Callback(callback.getJsFunction())
-    ));
-  }
-
-  void extractAll(const char *outputDirectory, nbind::cbFunction callback) {
-    Nan::AsyncQueueWorker(
-      new ExtractWorker(m_Wrapped, std::shared_ptr<BSA::File>(), outputDirectory,
-        new Nan::Callback(callback.getJsFunction())
-    ));
-  }
-
-  BSAFile createFile(const char *name, const char *sourcePath, bool compressed) {
-    return BSAFile(m_Wrapped->createFile(name, sourcePath, compressed));
   }
 private:
   std::string m_Name;
   std::shared_ptr<BSA::Archive> m_Wrapped;
+  Napi::ThreadSafeFunction m_ThreadCB;
 };
 
-class LoadWorker : public Nan::AsyncWorker {
-public:
-  LoadWorker(const char *fileName, bool testHashes, bool create, Nan::Callback *appCallback)
-    : Nan::AsyncWorker(appCallback)
-    , m_OutputDirectory(fileName)
-    , m_TestHashes(testHashes)
-    , m_Create(create)
-  {
-  }
-
-  void Execute() {
-    try {
-      m_Result = new BSArchive(m_OutputDirectory.c_str(), m_TestHashes, m_Create);
-    }
-    catch (const BSAException &e) {
-      m_ErrorCode = e.code();
-      m_Errno = e.sysError();
-      m_SysCall = e.sysCall();
-      SetErrorMessage(e.what());
-    }
-    catch (const std::exception &e) {
-      SetErrorMessage(e.what());
-    }
-  }
-
-  void HandleOKCallback() {
-    Nan::HandleScope scope;
-
-    v8::Local<v8::Value> argv[] = {
-      Nan::Null()
-      , nbind::convertToWire(*m_Result)
-    };
-
-    callback->Call(2, argv);
-    delete m_Result;
-  }
-
-  virtual void HandleErrorCallback() {
-    Nan::HandleScope scope;
-
-    v8::Local<v8::Value> argv[] = {
-      (m_ErrorCode == BSA::EErrorCode::ERROR_ACCESSFAILED) || (m_ErrorCode == BSA::EErrorCode::ERROR_FILENOTFOUND)
-        ? Nan::ErrnoException(m_Errno, m_SysCall)
-        : Nan::Error(ErrorMessage())
-    };
-    callback->Call(1, argv, async_resource);
-  }
-
-private:
-  BSArchive *m_Result;
-  std::string m_OutputDirectory;
-  BSA::EErrorCode m_ErrorCode;
-  int m_Errno;
-  const char *m_SysCall;
-  bool m_TestHashes;
-  bool m_Create;
-};
-
-void loadBSA(const char *fileName, bool testHashes, nbind::cbFunction &callback) {
-  Nan::AsyncQueueWorker(
-    new LoadWorker(
-      fileName, testHashes, false,
-      new Nan::Callback(callback.getJsFunction())
-  ));
+BSAddon::BSAddon(Napi::Env env, Napi::Object exports) {
+  DefineAddon(exports, {
+    InstanceMethod("loadBSA", &BSAddon::loadBSA),
+    InstanceMethod("createBSA", &BSAddon::createBSA),
+    });
+  constructArchive = BSArchive::Init(env, exports);
+  constructFolder = BSAFolder::Init(env, exports);
+  constructFile = BSAFile::Init(env, exports);
 }
 
-void createBSA(const char *fileName, nbind::cbFunction &callback) {
-  Nan::AsyncQueueWorker(
-    new LoadWorker(
-      fileName, false, true,
-      new Nan::Callback(callback.getJsFunction())
-  ));
+Napi::Value BSAddon::loadBSA(const Napi::CallbackInfo& info) {
+  Napi::Env env = info.Env();
+  Napi::HandleScope scope(env);
+
+  Napi::String filePath = info[0].ToString();
+  Napi::Boolean testHashes = info[1].ToBoolean();
+  Napi::Function cb = info[2].As<Napi::Function>();
+
+  Napi::Object result = BSArchive::CreateNewItem(env);
+  BSArchive* resultObj = BSArchive::Unwrap(result);
+
+  resultObj->readAsync(info, filePath, testHashes, cb);
+
+  return info.Env().Undefined();
 }
 
-NBIND_CLASS(BSAFile) {
-  NBIND_GETTER(getName);
-  NBIND_GETTER(getFilePath);
-  NBIND_GETTER(getFileSize);
+Napi::Value BSAddon::createBSA(const Napi::CallbackInfo& info) {
+  Napi::String filePath = info[0].ToString();
+  Napi::Function cb = info[1].As<Napi::Function>();
+
+  Napi::Object result = BSArchive::CreateNewItem(info.Env());
+  cb.Call({ result });
+
+  return info.Env().Undefined();
 }
 
-NBIND_CLASS(BSAFolder) {
-  NBIND_GETTER(getName);
-  NBIND_GETTER(getFullPath);
-  NBIND_GETTER(getNumSubFolders);
-  NBIND_GETTER(getNumFiles);
-  NBIND_METHOD(getSubFolder);
-  NBIND_METHOD(countFiles);
-  NBIND_METHOD(getFile);
-  NBIND_METHOD(addFile);
-  NBIND_METHOD(addFolder);
-
-}
-
-NBIND_CLASS(BSArchive) {
-  NBIND_CONSTRUCT<const char*, bool, bool>();
-  NBIND_GETTER(getType);
-  NBIND_GETTER(getRoot);
-  NBIND_METHOD(write);
-  NBIND_METHOD(extractFile);
-  NBIND_METHOD(extractAll);
-  NBIND_METHOD(createFile);
-}
-
-NBIND_FUNCTION(loadBSA);
-NBIND_FUNCTION(createBSA);
+NODE_API_ADDON(BSAddon)

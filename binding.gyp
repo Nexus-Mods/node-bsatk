@@ -15,15 +15,15 @@
                 "index.cpp"
             ],
             "include_dirs": [
+                "<!(node -p \"require('node-addon-api').include_dir\")",
+                "./bsatk/src/common",
                 "./zlib/include"
+            ],
+            "dependencies": [
+              "<!(node -p \"require('node-addon-api').gyp\")"
             ],
             "cflags!": ["-fno-exceptions"],
             "cflags_cc!": ["-fno-exceptions"],
-            'msbuild_settings': {
-              'ClCompile': {
-                'AdditionalOptions': ['-std:c++17', '/Ob2', '/Oi', '/Ot', '/Oy', '/GL', '/GF', '/Gy', '/MT']
-              }
-            },
             "conditions": [
                 [
                     'OS=="win"',
@@ -45,6 +45,11 @@
                             'VCLinkerTool': {
                               'LinkTimeCodeGeneration': 1
                             }
+                        },
+                        "msbuild_settings": {
+                          "ClCompile": {
+                            "AdditionalOptions": ['-std:c++17']
+                          }
                         }
                     }
                 ],
