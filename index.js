@@ -1,3 +1,11 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 
-module.exports = require('bindings')('bsatk');
+let lib;
+try {
+  lib = require('./bsatk');
+} catch (e) {
+  lib = require('./build/Release/bsatk');
+}
+
+
+module.exports = lib;

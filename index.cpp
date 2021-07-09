@@ -101,12 +101,20 @@ public:
 
   BSAFile(const Napi::CallbackInfo& info)
     : Napi::ObjectWrap<BSAFile>(info)
-  {}
+  {
+    Ref();
+  }
 
   BSAFile(const Napi::CallbackInfo &info, std::shared_ptr<BSA::File> file)
     : Napi::ObjectWrap<BSAFile>(info)
     , m_File(file)
-  {}
+  {
+    Ref();
+  }
+
+  ~BSAFile() {
+    Unref();
+  }
 
   static Napi::Object CreateNewItem(Napi::Env env) {
     BSAddon* addon = env.GetInstanceData<BSAddon>();
@@ -151,12 +159,18 @@ public:
   BSAFolder(const Napi::CallbackInfo& info)
     : Napi::ObjectWrap<BSAFolder>(info)
   {
+    Ref();
   }
 
   BSAFolder(const Napi::CallbackInfo &info, std::shared_ptr<BSA::Folder> folder)
     : Napi::ObjectWrap<BSAFolder>(info)
     , m_Folder(folder)
   {
+    Ref();
+  }
+
+  virtual ~BSAFolder() {
+    Unref();
   }
 
   static Napi::Object CreateNewItem(Napi::Env env) {
@@ -222,6 +236,7 @@ public:
     , m_Wrapped(new BSA::Archive())
     , m_Name(info[0].ToString())
   {
+    Ref();
   }
 
   static Napi::Object CreateNewItem(Napi::Env env) {
@@ -230,6 +245,7 @@ public:
   }
 
   ~BSArchive() {
+    Unref();
   }
 
   void readAsync(const Napi::CallbackInfo& info, const std::string& filePath, bool testHashes, const Napi::Function& cb) {
