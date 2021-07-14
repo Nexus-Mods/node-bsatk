@@ -89,8 +89,11 @@ class BSAFile : public Napi::ObjectWrap<BSAFile> {
 public:
   static Napi::FunctionReference Init(Napi::Env env, Napi::Object exports) {
     Napi::Function func = DefineClass(env, "BSAFile", {
+      InstanceAccessor("name", &BSAFile::getName, nullptr, napi_enumerable),
       InstanceMethod("getName", &BSAFile::getName),
+      InstanceAccessor("filePath", &BSAFile::getFilePath, nullptr, napi_enumerable),
       InstanceMethod("getFilePath", &BSAFile::getFilePath),
+      InstanceAccessor("fileSize", &BSAFile::getFileSize, nullptr, napi_enumerable),
       InstanceMethod("getFileSize", &BSAFile::getFileSize),
       });
 
@@ -140,10 +143,14 @@ class BSAFolder: public Napi::ObjectWrap<BSAFolder> {
 public:
   static Napi::FunctionReference Init(Napi::Env env, Napi::Object exports) {
     Napi::Function func = DefineClass(env, "BSAFolder", {
+      InstanceAccessor("name", &BSAFolder::getName, nullptr, napi_enumerable),
       InstanceMethod("getName", &BSAFolder::getName),
+      InstanceAccessor("fullPath", &BSAFolder::getFullPath, nullptr, napi_enumerable),
       InstanceMethod("getFullPath", &BSAFolder::getFullPath),
+      InstanceAccessor("numSubFolders", &BSAFolder::getNumSubFolders, nullptr, napi_enumerable),
       InstanceMethod("getNumSubFolders", &BSAFolder::getNumSubFolders),
       InstanceMethod("getSubFolder", &BSAFolder::getSubFolder),
+      InstanceAccessor("numFiles", &BSAFolder::getNumFiles, nullptr, napi_enumerable),
       InstanceMethod("getNumFiles", &BSAFolder::getNumFiles),
       InstanceMethod("countFiles", &BSAFolder::countFiles),
       InstanceMethod("getFile", &BSAFolder::getFile),
@@ -217,7 +224,9 @@ class BSArchive: public Napi::ObjectWrap<BSArchive> {
 public:
   static Napi::FunctionReference Init(Napi::Env env, Napi::Object exports) {
     Napi::Function func = DefineClass(env, "BSArchive", {
+      InstanceAccessor("type", &BSArchive::getType, nullptr, napi_enumerable),
       InstanceMethod("getType", &BSArchive::getType),
+      InstanceAccessor("root", &BSArchive::getRoot, nullptr, napi_enumerable),
       InstanceMethod("getRoot", &BSArchive::getRoot),
       InstanceMethod("write", &BSArchive::write),
       InstanceMethod("extractFile", &BSArchive::extractFile),
