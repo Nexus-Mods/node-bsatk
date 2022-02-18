@@ -213,7 +213,11 @@ public:
     return info.Env().Undefined();
   }
   Napi::Value addFolder(const Napi::CallbackInfo &info) {
-    return BSAFolder(info, m_Folder->addFolder(Napi::String::New(info.Env(), info[0].ToString().Utf8Value()))).Value();
+    Napi::String folderName = info[0].ToString();
+    Napi::Object result = CreateNewItem(info.Env());
+    BSA::Folder::Ptr newFolder = m_Folder->addFolder(folderName);
+    BSAFolder::Unwrap(result)->setWrappee(newFolder);
+    return result;
   }
 
 private:
@@ -228,12 +232,11 @@ public:
       InstanceMethod("getType", &BSArchive::getType),
       InstanceAccessor("root", &BSArchive::getRoot, nullptr, napi_enumerable),
       InstanceMethod("getRoot", &BSArchive::getRoot),
+      InstanceMethod("createFile", &BSArchive::createFile),
       InstanceMethod("write", &BSArchive::write),
       InstanceMethod("extractFile", &BSArchive::extractFile),
       InstanceMethod("extractAll", &BSArchive::extractAll),
-      });
-
-    Napi::FunctionReference* constructor = new Napi::FunctionReference();
+    });
     exports.Set("BSArchive", func);
     return Napi::Persistent(func);
   }
@@ -248,9 +251,10 @@ public:
     Ref();
   }
 
-  static Napi::Object CreateNewItem(Napi::Env env) {
-    BSAddon* addon = env.GetInstanceData<BSAddon>();
-    return addon->constructArchive.New({ });
+  static Napi::Object CreateNewItem(const Napi::CallbackInfo& info) {
+    BSAddon* addon = info.Env().GetInstanceData<BSAddon>();
+    Napi::String filePath = info[0].ToString();
+    return addon->constructArchive.New({ filePath });
   }
 
   ~BSArchive() {
@@ -292,8 +296,14 @@ public:
     } };
   }
 
-  Napi::Value createFile(const Napi::CallbackInfo &info, const char *name, const char *sourcePath, bool compressed) {
-    return BSAFile(info, m_Wrapped->createFile(name, sourcePath, compressed)).Value();
+  Napi::Value createFile(const Napi::CallbackInfo &info) {
+    Napi::String fileName = info[0].ToString();
+    Napi::String sourcePath = info[1].ToString();
+    Napi::Boolean compressed = info[2].ToBoolean();
+    BSA::File::Ptr file = m_Wrapped->createFile(fileName, sourcePath, compressed);
+    Napi::Object result = BSAFile::CreateNewItem(info.Env());
+    BSAFile::Unwrap(result)->setWrappee(file);
+    return result;
   }
 
   Napi::Value write(const Napi::CallbackInfo &info) {
@@ -375,7 +385,7 @@ Napi::Value BSAddon::loadBSA(const Napi::CallbackInfo& info) {
   Napi::Boolean testHashes = info[1].ToBoolean();
   Napi::Function cb = info[2].As<Napi::Function>();
 
-  Napi::Object result = BSArchive::CreateNewItem(env);
+  Napi::Object result = BSArchive::CreateNewItem(info);
   BSArchive* resultObj = BSArchive::Unwrap(result);
 
   resultObj->readAsync(info, filePath, testHashes, cb);
@@ -384,10 +394,8 @@ Napi::Value BSAddon::loadBSA(const Napi::CallbackInfo& info) {
 }
 
 Napi::Value BSAddon::createBSA(const Napi::CallbackInfo& info) {
-  Napi::String filePath = info[0].ToString();
   Napi::Function cb = info[1].As<Napi::Function>();
-
-  Napi::Object result = BSArchive::CreateNewItem(info.Env());
+  Napi::Object result = BSArchive::CreateNewItem(info);
   cb.Call({ result });
 
   return info.Env().Undefined();
