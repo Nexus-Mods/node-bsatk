@@ -7,6 +7,7 @@ declare module 'bsatk' {
     extractAll: (outputDirectory: string, callback: (err: Error) => void) => void;
     write: () => void;
     createFile: (fileName: string, sourcePath: string, compressed: boolean) => BSAFile;
+    closeArchive: (callback: (err:Error) => void) => void;
   }
 
   export class BSAFile {
