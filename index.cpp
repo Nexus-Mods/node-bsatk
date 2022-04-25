@@ -343,13 +343,8 @@ public:
   }
 
   Napi::Value closeArchive(const Napi::CallbackInfo &info) {
-    Napi::Function callback = info[0].As<Napi::Function>();
-    if (!m_Wrapped->isOpen()) {
-      std::string errorMessage = "bsa file is closed";
-      callback.Call({Napi::String::New(info.Env(), errorMessage.c_str())});
-    } else {
+    if (m_Wrapped->isOpen()) {
       m_Wrapped->close();
-      callback.Call({ info.Env().Null() });
     }
     return info.Env().Undefined();
   }
