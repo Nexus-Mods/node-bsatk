@@ -13,7 +13,7 @@
   "dependencies": {
     "autogypi": "^0.2.2",
     "node-addon-api": "^4.0.0",
-    "node-gyp": "^6.1.0",
+    "node-gyp": "^9.0.0",
     "tmp": "0.0.29"
   }
 }
