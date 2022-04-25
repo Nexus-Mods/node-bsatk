@@ -348,6 +348,8 @@ public:
       std::string errorMessage = "bsa file is closed";
       callback.Call({Napi::String::New(info.Env(), errorMessage.c_str())});
       return info.Env().Undefined();
+    } else {
+      callback.Call({ info.Env().Null() });
     }
     m_Wrapped->close();
     return info.Env().Undefined();
