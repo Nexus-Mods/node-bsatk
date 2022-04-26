@@ -236,6 +236,7 @@ public:
       InstanceMethod("write", &BSArchive::write),
       InstanceMethod("extractFile", &BSArchive::extractFile),
       InstanceMethod("extractAll", &BSArchive::extractAll),
+      InstanceMethod("closeArchive", &BSArchive::closeArchive),
     });
     exports.Set("BSArchive", func);
     return Napi::Persistent(func);
@@ -338,6 +339,13 @@ public:
       info[2].As<Napi::Function>());
 
     worker->Queue();
+    return info.Env().Undefined();
+  }
+
+  Napi::Value closeArchive(const Napi::CallbackInfo &info) {
+    if (m_Wrapped->isOpen()) {
+      m_Wrapped->close();
+    }
     return info.Env().Undefined();
   }
 
