@@ -1,19 +1,32 @@
 {
   "name": "bsatk",
-  "version": "2.0.3",
+  "version": "2.0.4",
   "description": "read information from gamebryo bsa files (very basic)",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Nexus-Mods/node-bsatk.git"
+  },
   "scripts": {
-    "autogypi": "autogypi",
-    "node-gyp": "node-gyp",
     "submodules": "git clone --branch noboost --depth=1 https://github.com/TanninOne/modorganizer-bsatk bsatk || exit /b 0",
-    "install": "npm run submodules && autogypi && node-gyp configure build"
+    "prebuild": "prebuild.cmd -r napi -t 4 -a x64 --prepack codesign",
+    "preinstall": "npm run submodules && autogypi",
+    "install": "prebuild-install -r napi -t 4 -a x64 || node-gyp rebuild"
+  },
+  "binary": {
+    "napi_versions": [
+      4
+    ]
   },
   "author": "Black Tree Gaming Ltd.",
   "license": "GPL-3.0",
+  "devDependencies": {
+    "prebuild": "^11.0.3"
+  },
   "dependencies": {
     "autogypi": "^0.2.2",
     "node-addon-api": "^4.0.0",
     "node-gyp": "^9.0.0",
-    "tmp": "0.0.29"
+    "tmp": "0.0.29",
+    "prebuild-install": "^7.1.0"
   }
 }
