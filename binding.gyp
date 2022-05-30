@@ -31,24 +31,24 @@
                         "defines!": [
                             "_HAS_EXCEPTIONS=0"
                         ],
+                        "defines": [
+                          "UNICODE",
+                          "_UNICODE",
+                          "NAPI_EXPERIMENTAL",
+                          "NAPI_VERSION=<(napi_build_version)"
+                        ],
                         "libraries": [
                             "-l../zlib/win32/zlibstatic.lib",
-                            "-DelayLoad:node.exe",
+                            "-DelayLoad:node.exe"
                         ],
                         "msvs_settings": {
                             "VCCLCompilerTool": {
                                 "ExceptionHandling": 1
-                            },
-                            "VCLibrarianTool": {
-                              'AdditionalOptions': [ '/LTCG' ]
-                            },
-                            'VCLinkerTool': {
-                              'LinkTimeCodeGeneration': 1
                             }
                         },
                         "msbuild_settings": {
                           "ClCompile": {
-                            "AdditionalOptions": ['-std:c++17']
+                            "AdditionalOptions": ["-std:c++17", "/MT"]
                           }
                         }
                     }
