@@ -8,13 +8,13 @@
   },
   "scripts": {
     "submodules": "git clone --branch noboost --depth=1 https://github.com/TanninOne/modorganizer-bsatk bsatk || exit /b 0",
-    "prebuild": "prebuild.cmd -r napi -t 4 -a x64 --prepack codesign",
+    "prebuild": "prebuild.cmd -r napi -t 6 -a x64 --prepack codesign",
     "preinstall": "npm run submodules && autogypi",
-    "install": "prebuild-install -r napi -t 4 -a x64 || node-gyp rebuild"
+    "install": "prebuild-install -r napi -t 6 -a x64 || node-gyp rebuild"
   },
   "binary": {
     "napi_versions": [
-      4
+      6
     ]
   },
   "author": "Black Tree Gaming Ltd.",

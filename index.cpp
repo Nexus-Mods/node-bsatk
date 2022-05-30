@@ -22,7 +22,7 @@ public:
   BSAException(BSA::EErrorCode code, const char *sysCall)
     : m_Code(code), m_Errno(errno), m_SysCall(sysCall) {}
 
-  virtual char const* what() const override {
+  virtual char const* what() const noexcept override {
     return convertErrorCode(m_Code);
   }
 

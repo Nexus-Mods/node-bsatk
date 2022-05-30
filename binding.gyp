@@ -28,9 +28,6 @@
                 [
                     'OS=="win"',
                     {
-                        "defines!": [
-                            "_HAS_EXCEPTIONS=0"
-                        ],
                         "defines": [
                           "UNICODE",
                           "_UNICODE",
