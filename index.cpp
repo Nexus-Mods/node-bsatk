@@ -404,7 +404,7 @@ Napi::Value BSAddon::loadBSA(const Napi::CallbackInfo& info) {
 Napi::Value BSAddon::createBSA(const Napi::CallbackInfo& info) {
   Napi::Function cb = info[1].As<Napi::Function>();
   Napi::Object result = BSArchive::CreateNewItem(info);
-  cb.Call({ result });
+  cb.Call({ info.Env().Null(), result });
 
   return info.Env().Undefined();
 }
