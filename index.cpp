@@ -1,6 +1,7 @@
 #include "bsatk/src/bsaarchive.h"
 #include "string_cast.h"
 #include <vector>
+#include <thread>
 #include <napi.h>
 
 const char *convertErrorCode(BSA::EErrorCode code) {
@@ -370,8 +371,8 @@ private:
     }
   }
 private:
-  std::string m_Name;
   std::shared_ptr<BSA::Archive> m_Wrapped;
+  std::string m_Name;
   Napi::ThreadSafeFunction m_ThreadCB;
 };
 
