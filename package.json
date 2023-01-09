@@ -1,14 +1,14 @@
 {
   "name": "bsatk",
-  "version": "2.0.7",
+  "version": "2.0.8",
   "description": "read information from gamebryo bsa files (very basic)",
   "repository": {
     "type": "git",
     "url": "https://github.com/Nexus-Mods/node-bsatk.git"
   },
   "scripts": {
-    "submodules": "git clone --branch noboost --depth=1 https://github.com/TanninOne/modorganizer-bsatk bsatk || exit /b 0",
-    "prebuild": "prebuild.cmd -r napi -t 6 -a x64 --prepack codesign",
+    "submodules": "node fetch_bsatk.js",
+    "prebuild": "prebuild.cmd -r napi -t 6 -a x64 --prepack codesign --upload",
     "preinstall": "npm run submodules",
     "install": "prebuild-install -r napi -t 6 -a x64 || (autogypi && node-gyp rebuild)"
   },
