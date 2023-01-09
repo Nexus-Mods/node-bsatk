@@ -10,7 +10,7 @@
     "submodules": "node fetch_bsatk.js",
     "prebuild": "prebuild.cmd -r napi -t 6 -a x64 --prepack codesign",
     "preinstall": "npm run submodules",
-    "install": "prebuild-install -r napi -t 6 -a x64 || (autogypi && node-gyp rebuild)"
+    "install": "prebuild-install -r napi -t 6 -a x64 || node-gyp rebuild"
   },
   "binary": {
     "napi_versions": [
@@ -23,10 +23,8 @@
     "prebuild": "^11.0.3"
   },
   "dependencies": {
-    "autogypi": "^0.2.2",
-    "node-addon-api": "^4.0.0",
+    "node-addon-api": "^5.0.0",
     "node-gyp": "^9.0.0",
-    "tmp": "0.0.29",
     "prebuild-install": "^7.1.0"
   }
 }
