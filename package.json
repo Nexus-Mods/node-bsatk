@@ -8,7 +8,7 @@
   },
   "scripts": {
     "submodules": "node fetch_bsatk.js",
-    "prebuild": "prebuild.cmd -r napi -t 6 -a x64 --prepack codesign --upload",
+    "prebuild": "prebuild.cmd -r napi -t 6 -a x64 --prepack codesign",
     "preinstall": "npm run submodules",
     "install": "prebuild-install -r napi -t 6 -a x64 || (autogypi && node-gyp rebuild)"
   },
