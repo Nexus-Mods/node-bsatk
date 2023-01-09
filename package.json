@@ -1,6 +1,6 @@
 {
   "name": "bsatk",
-  "version": "2.0.6",
+  "version": "2.0.7",
   "description": "read information from gamebryo bsa files (very basic)",
   "repository": {
     "type": "git",
@@ -9,8 +9,8 @@
   "scripts": {
     "submodules": "git clone --branch noboost --depth=1 https://github.com/TanninOne/modorganizer-bsatk bsatk || exit /b 0",
     "prebuild": "prebuild.cmd -r napi -t 6 -a x64 --prepack codesign",
-    "preinstall": "npm run submodules && autogypi",
-    "install": "prebuild-install -r napi -t 6 -a x64 || node-gyp rebuild"
+    "preinstall": "npm run submodules",
+    "install": "prebuild-install -r napi -t 6 -a x64 || (autogypi && node-gyp rebuild)"
   },
   "binary": {
     "napi_versions": [
