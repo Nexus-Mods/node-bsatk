@@ -2,9 +2,6 @@
     "targets": [
         {
             "target_name": "bsatk",
-            "includes": [
-                "auto.gypi"
-            ],
             "sources": [
                 "bsatk/src/bsaarchive.cpp",
                 "bsatk/src/bsaexception.cpp",
@@ -16,14 +13,14 @@
             ],
             "include_dirs": [
                 "<!(node -p \"require('node-addon-api').include_dir\")",
-                "./bsatk/src/common",
-                "./zlib/include"
+                "./bsatk/src"
             ],
             "dependencies": [
               "<!(node -p \"require('node-addon-api').gyp\")"
             ],
             "cflags!": ["-fno-exceptions"],
             "cflags_cc!": ["-fno-exceptions"],
+            "cflags_cc": ["-std=c++17"],
             "conditions": [
                 [
                     'OS=="win"',
@@ -37,6 +34,9 @@
                         "libraries": [
                             "-l../zlib/win32/zlibstatic.lib",
                             "-DelayLoad:node.exe"
+                        ],
+                        "include_dirs": [
+                            "./zlib/include"
                         ],
                         "msvs_settings": {
                             "VCCLCompilerTool": {
@@ -60,8 +60,5 @@
                 ]
             ]
         }
-    ],
-    "includes": [
-        "auto-top.gypi"
     ]
 }

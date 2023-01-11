@@ -1,4 +1,4 @@
-#include "bsatk/src/bsaarchive.h"
+#include <bsaarchive.h>
 #include "string_cast.h"
 #include <vector>
 #include <thread>
