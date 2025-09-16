@@ -20,7 +20,7 @@
             ],
             "cflags!": ["-fno-exceptions"],
             "cflags_cc!": ["-fno-exceptions"],
-            "cflags_cc": ["-std=c++17"],
+            "cflags_cc": ["-std=c++20"],
             "conditions": [
                 [
                     'OS=="win"',
