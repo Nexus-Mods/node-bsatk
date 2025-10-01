@@ -9,7 +9,18 @@
                 "bsatk/src/bsafolder.cpp",
                 "bsatk/src/bsatypes.cpp",
                 "bsatk/src/filehash.cpp",
-                "index.cpp"
+                "index.cpp",
+                "string_cast.h",
+                "bsatk/src/bsaarchive.h",
+                "bsatk/src/bsaexception.h",
+                "bsatk/src/bsafile.h",
+                "bsatk/src/bsafolder.h",
+                "bsatk/src/bsatk.h",
+                "bsatk/src/bsatype.h",
+                "bsatk/src/bsatypes.h",
+                "bsatk/src/errorcodes.h",
+                "bsatk/src/filehash.h",
+                "bsatk/src/semaphore.h"
             ],
             "include_dirs": [
                 "<!(node -p \"require('node-addon-api').include_dir\")",
