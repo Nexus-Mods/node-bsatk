@@ -20,7 +20,7 @@
             ],
             "cflags!": ["-fno-exceptions"],
             "cflags_cc!": ["-fno-exceptions"],
-            "cflags_cc": ["-std=c++20"],
+            "cflags_cc": ["-std=c++17"],
             "conditions": [
                 [
                     'OS=="win"',
@@ -56,6 +56,13 @@
                         "xcode_settings": {
                             "GCC_ENABLE_CPP_EXCEPTIONS": "YES"
                         }
+                    }
+                ],
+                [
+                    'OS=="linux"',
+                    {
+                        "cflags_cc": ["-pthread"],
+                        "ldflags": ["-pthread"]
                     }
                 ]
             ]
