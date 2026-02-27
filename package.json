@@ -6,6 +6,7 @@
     "type": "git",
     "url": "https://github.com/Nexus-Mods/node-bsatk.git"
   },
+  "os": ["win32", "linux"],
   "scripts": {
     "submodules": "node fetch_bsatk.js",
     "prebuild": "prebuild.cmd -r napi -t 6 -a x64 --prepack codesign",
